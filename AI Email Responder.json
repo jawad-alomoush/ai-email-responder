@@ -1,0 +1,195 @@
+{
+  "name": "AI Email Responder",
+  "nodes": [
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "filters": {
+          "labelIds": [
+            "INBOX"
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.gmailTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        0,
+        0
+      ],
+      "id": "46cae85d-b1b9-49fa-96c4-36d80b632478",
+      "name": "Gmail Trigger",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "dJvK3Pe4opjD2Kys",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "491f6d06-059d-4926-847c-cbddac57fceb",
+              "leftValue": "={{ $json.From }}",
+              "rightValue": "noreply",
+              "operator": {
+                "type": "string",
+                "operation": "notContains"
+              }
+            },
+            {
+              "id": "81ff1bb7-f679-4b06-9cea-2587596f29eb",
+              "leftValue": "={{ $json.From }}",
+              "rightValue": "newsletter",
+              "operator": {
+                "type": "string",
+                "operation": "notContains"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        208,
+        0
+      ],
+      "id": "26f83790-2daa-42ce-926a-08be78ae65b4",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=You are a professional email assistant.\nRead the following email and write a polite,\nprofessional reply in the same language as the email.\n\nSender: {{ $('Gmail Trigger').item.json.From }}\nSubject: {{ $('Gmail Trigger').item.json.Subject }}\nEmail content: {{ $('Gmail Trigger').item.json.snippet }}\n\nRules:\n- Write only the reply body\n- Be polite and professional\n- Keep it concise\n- Do not write a subject line",
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        416,
+        -96
+      ],
+      "id": "3e238bee-c0f5-4fe7-9cdd-4e803eb0ad58",
+      "name": "Basic LLM Chain"
+    },
+    {
+      "parameters": {
+        "model": "llama-3.3-70b-versatile",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        528,
+        80
+      ],
+      "id": "7d497ae4-0cd4-4188-aa75-0d8168d54745",
+      "name": "Groq Chat Model",
+      "credentials": {
+        "groqApi": {
+          "id": "UR0gZstWY9NIeVAY",
+          "name": "Groq account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('Gmail Trigger').item.json.From }}",
+        "subject": "=Re: {{ $('Gmail Trigger').item.json.Subject }}",
+        "emailType": "text",
+        "message": "={{ $json.text }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        768,
+        -96
+      ],
+      "id": "731412a4-e706-4e3f-ab03-6a26f2e5c115",
+      "name": "Send a message",
+      "webhookId": "d6d8f8c0-937e-4625-b0dd-d6d869511e27",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "dJvK3Pe4opjD2Kys",
+          "name": "Gmail account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Gmail Trigger": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Basic LLM Chain": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "77adfe41-e05f-4ba5-b89e-50d4a6e9f976",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "8d323daa480d56855857820a930cb5ca45702e237a3dec5df6894e811222aa17"
+  },
+  "id": "kOMSzZ5Q9XZEKfAk",
+  "tags": []
+}
